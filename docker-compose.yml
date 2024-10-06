@@ -1,0 +1,49 @@
+# config
+
+x-service: &service
+  image: node:21-alpine
+  restart: always
+  user: root
+  working_dir: /home/app
+  entrypoint: yarn
+  command: dev
+  dns:
+    - 8.8.8.8
+  expose:
+    - 8000
+  environment:
+    - PORT=8000
+    - APP_ENV=local
+    - NODE_ENV=local
+    - TZ=America/Sao_Paulo
+
+
+services:
+
+  # apps
+
+  api:
+    <<: *service
+    volumes:
+      - .:/home/app
+    ports:
+      - "8000:8000"
+
+  # dependencies
+
+  minio:
+    image: bitnami/minio:latest
+    volumes:
+      - minio_data:/bitnami/minio/data 
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_FORCE_NEW_KEYS: yes
+      MINIO_SCHEME: http
+      MINIO_DEFAULT_BUCKETS: fshortner
+      MINIO_ROOT_USER: fshortner
+      MINIO_ROOT_PASSWORD: thisissecret
+
+volumes:
+  minio_data: {}
