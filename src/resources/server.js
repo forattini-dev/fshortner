@@ -20,7 +20,7 @@ export async function createServer (App) {
   server.use(morgan('dev'));
   server.use(rateLimit({
     max: 100,
-    windowMs: 15 * 60 * 1000,
+    windowMs: 2 * 60 * 1000,
   }));
 
   return server

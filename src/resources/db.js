@@ -2,7 +2,7 @@ import { S3db } from 's3db.js'
 
 export async function createDB (App) {
   const db = new S3db({
-    connectionString: App.env.BUCKET_CONNECTION_STRING,
+    connectionString: App.env.FS_CONNECTION_STRING,
   })
 
   await db.connect()
@@ -11,6 +11,7 @@ export async function createDB (App) {
     name: 'urls', 
     attributes: { 
       link: 'string',
+      shareable: 'string',
       ip: 'string',
       clicks: 'number|optional|min:0',
     },

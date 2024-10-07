@@ -1,3 +1,4 @@
+import { nanoid } from 'nanoid';
 import createError from 'http-errors';
 import { body, validationResult } from 'express-validator'
 
@@ -16,19 +17,28 @@ export function addRoutes(App) {
       return next(err);
     }
 
+    const id = App.env.FS_ID_SIZE 
+      ? nanoid(parseInt(App.env.FS_ID_SIZE)) 
+      : nanoid(16)
+    
+    let shareable = new URL([
+      req.protocol,
+      '://',
+      App.env.FS_DOMAIN ?? req.get('host'),
+      req.originalUrl
+    ].join(''))
+    
+    shareable.pathname = `/${id}`
+    shareable = shareable.toString()
+
     const url = await db.resource('urls').insert({ 
       ...req.body,
+      id,
+      shareable,
       ip: req.ip,
-      createdAt: Date.now(),
     })
 
     delete url.ip
-
-    const fullUrl = req.protocol + '://' + req.get('host') + req.originalUrl;
-    url.shareble = new URL(fullUrl)
-    url.shareble.pathname = `/${url.id}`
-    url.shareble = url.shareble.toString()
-
     return res.json(url);
   })
 
@@ -36,8 +46,10 @@ export function addRoutes(App) {
   server.get('/v1/urls/:id', async (req, res, next) => {
     try {
       const url = await db.resource('urls').get(req.params.id)
+      url.createdAt = url._createdAt
       delete url.ip
-
+      delete url._length
+      delete url._createdAt
       return res.json(url)
     } catch (error) {
       const err = createError(404, 'url not found')

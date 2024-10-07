@@ -15,6 +15,6 @@ export const App = {
     addRoutes(this)
     startCrons(this)
 
-    this.resources.server.listen(this.env.PORT, () => console.info(`server is running on port ${this.env.PORT}`))
+    this.resources.server.listen(this.env.PORT, () => console.info(`FShrt :: server - running on port ${this.env.PORT}`))
   }
 }

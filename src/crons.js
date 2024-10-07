@@ -3,11 +3,11 @@ import cron from 'node-cron'
 export function startCrons(App) {
   const { db } = App.resources
 
-  cron.schedule('*/10 * * * * *', async () => {
+  cron.schedule('*/5 * * * * *', async () => {
     const items = await db.resource('report-items').page(1)
     
     if (!items.length) return
-    else console.log(' clicks :: calculating...')
+    console.log('FShrt :: clicks - calculating...')
 
     const report = items.reduce((acc, item) => {
       if (!acc[item.urlId]) acc[item.urlId] = 0
@@ -16,11 +16,14 @@ export function startCrons(App) {
     }, {})
 
     for (const [urlId, clicks] of Object.entries(report)) {
-      const url = await db.resource('urls').get(urlId)
-      await db.resource('urls').update(urlId, { clicks: url.clicks + clicks })
+      try {
+        const url = await db.resource('urls').get(urlId)
+        await db.resource('urls').update(urlId, { clicks: (url.clicks || 0) + clicks })
+      } catch (error) {
+        console.error('FShrt :: clicks - error:', error)
+      }
     }
 
     await db.resource('report-items').deleteMany(items.map(item => item.id))
-    console.log(' clicks :: added:', items.length);
   });
 }
