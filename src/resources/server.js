@@ -1,3 +1,4 @@
+import path from 'path'
 import hpp from 'hpp'
 import cors from 'cors'
 import helmet from 'helmet'
@@ -10,6 +11,9 @@ import statusMonitor from 'express-status-monitor'
 export async function createServer (App) {
   const server = Express();
   
+  server.set('view engine', 'ejs');
+  server.set('views', path.join(App.root, 'views'));
+
   server.use(statusMonitor());
   server.use(Express.json());
   server.use(Express.urlencoded({ extended: true }));

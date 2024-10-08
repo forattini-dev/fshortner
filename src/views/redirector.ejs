@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>Redirecting...</title>
+  <meta http-equiv="refresh" content="<%= timeout %>; url=<%= link %>">
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      height: 100vh;
+      background-color: #f3f2ef;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      color: #202124;
+    }
+
+    .container {
+      text-align: center;
+      padding: 40px;
+      background-color: #fff;
+      border: 1px solid #e1e1e1;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+      border-radius: 8px;
+      max-width: 500px;
+      width: 90%;
+    }
+
+    .container h1 {
+      font-size: 2em;
+      margin-bottom: 0.5em;
+      color: #0a66c2;
+    }
+
+    .container p {
+      font-size: 1em;
+      margin-bottom: 1.5em;
+    }
+
+    .container a {
+      color: #0a66c2;
+      text-decoration: none;
+      font-weight: bold;
+    }
+
+    .container a:hover {
+      text-decoration: underline;
+    }
+
+    .spinner {
+      margin: 20px auto;
+      width: 50px;
+      height: 50px;
+      border: 6px solid #e1e1e1;
+      border-top: 6px solid #0a66c2;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <h1>Redirecting You</h1>
+    <div class="spinner"></div>
+    <p>You will be redirected shortly. If the redirection doesn't happen automatically, please click the button below.</p>
+    <p><a href="<%= link %>">Go to Destination</a></p>
+  </div>
+  <script>
+    setTimeout(function () {
+      window.location.href = "<%= link %>";
+    }, <%= timeout %> * 1000);
+  </script>
+</body>
+
+</html>

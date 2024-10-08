@@ -46,10 +46,16 @@ Response:
 
 ## Configuration
 
-- `PORT`: Port to run the service. Default: 8000
-- `FS_ID_SIZE`: Size of the ID to generate. Default: 16
-- `FS_CONNECTION_STRING`: Secret to connect to the s3db.js database.
-- `FS_DOMAIN`: Domain to use in the shareable link. Default: http://localhost:8000
+// table: 
+| variable | description | default |
+| ---: | --- | :---: |
+| PORT | Port to run the service | 8000 |
+| FS_ID_SIZE | Size of the ID to generate | 16 |
+| FS_DOMAIN | Domain to use in the shareable link | inferred |
+| FS_CONNECTION_STRING | Secret to connect to the s3db.js database | - |
+| FS_CRON_ENABLE | Enable the cron jobs | true |
+| FS_CRON_CLICKS_COUNTER | Cron expression to update the clicks counter | */30 * * * * * |
+| FS_CRON_VIEWS_COUNTER | Cron expression to update the views counter | */30 * * * * * |
 
 ## Run & test it
 

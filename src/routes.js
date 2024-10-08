@@ -1,3 +1,5 @@
+import path from 'path'
+import Express from 'express';
 import { nanoid } from 'nanoid';
 import createError from 'http-errors';
 import { body, validationResult } from 'express-validator'
@@ -17,21 +19,21 @@ export function addRoutes(App) {
       return next(err);
     }
 
-    const id = App.env.FS_ID_SIZE 
-      ? nanoid(parseInt(App.env.FS_ID_SIZE)) 
+    const id = App.env.FS_ID_SIZE
+      ? nanoid(parseInt(App.env.FS_ID_SIZE))
       : nanoid(16)
-    
+
     let shareable = new URL([
       req.protocol,
       '://',
       App.env.FS_DOMAIN ?? req.get('host'),
       req.originalUrl
     ].join(''))
-    
+
     shareable.pathname = `/${id}`
     shareable = shareable.toString()
 
-    const url = await db.resource('urls').insert({ 
+    const url = await db.resource('urls').insert({
       ...req.body,
       id,
       shareable,
@@ -58,35 +60,94 @@ export function addRoutes(App) {
     }
   })
 
-  // redirect
   server.get('/:id', async (req, res, next) => {
+    let url
+    
     try {
-      const url = await db.resource('urls').get(req.params.id)
-      
-      const click = {
-        urlId: url.id,
-        ip: req.ip,
-        utm: {
-          source: req.query.utm_source,
-          medium: req.query.utm_medium,
-          campaign: req.query.utm_campaign,
-          content: req.query.utm_content,
-          term: req.query.utm_term,
-        },
-      }
-
-      await Promise.all([
-        db.resource('clicks').insert(click),
-        db.resource('report-items').insert(click),
-      ])
-
-      return res.redirect(302, url.link)
+      url = await db.resource('urls').get(req.params.id)
     } catch (error) {
       const err = createError(404, 'url not found')
       err.details = error
       return next(err);
     }
+
+    const click = {
+      ip: req.ip,
+      urlId: req.params.id,
+    }
+
+    for (const [key, value] of Object.entries(req.query)) {
+      if (key.startsWith('utm_')) {
+        if (!click.utm) click.utm = {}
+        click.utm[key.replace('utm_', '')] = value;
+      }
+    }
+
+    try {
+      await Promise.all([
+        db.resource('clicks').insert(click),
+        db.resource('clicks-report').insert(click),
+      ])
+    } catch (error) {
+      const err = createError(500, 'could not save click')
+      err.details = error
+      console.log(err)
+    }
+    
+    const options = {
+      link: url.link,
+      timeout: 10, // needs to be in seconds
+    }
+
+    return res.render('redirector', options, (err, html) => {
+      if (err) {
+        const error = createError(500, 'error rendering template')
+        error.details = err
+        return next(error);
+      }
+
+      return res.send(html)
+    })
   })
+
+  server.post('/v1/live', async (req, res, next) => {
+    const { user, view } = req.body
+    
+    try {
+      const { id, ...rest } = user
+      const exists = await db.resource('users').exists(id)
+
+      if (exists) {
+        await db.resource('users').update(id, rest)
+      } else {
+        await db.resource('users').insert(user)
+      }
+    } catch (error) {
+      const err = createError(500, 'user not saved')
+      err.details = error
+      return next(err);
+    }
+
+    view.ip = req.ip
+    if (view.utm && Object.keys(view.utm).length === 0) delete view.utm
+
+    try {
+      await Promise.all([
+        db.resource('views').insert(view),
+        db.resource('views-report').insert(view),
+      ])
+    } catch (error) {
+      const err = createError(500, 'live data not saved')
+      err.details = error
+      console.log(error)
+      return next(err);
+    }
+    
+    return res.sendStatus(204)
+  })
+
+
+  server.use(Express.static(path.join(App.root, '..', 'public')));
 
   server.use((req, res, next) => {
     next(createError(404, 'route not found'));
@@ -105,6 +166,6 @@ export function addRoutes(App) {
     }
 
     res.json(errorResponse);
-  });
+  })
 }
 
