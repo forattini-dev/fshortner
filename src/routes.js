@@ -58,6 +58,7 @@ export function addRoutes(App) {
       delete url.ip
       delete url._length
       delete url._createdAt
+      if (url.webhook) url.webhook = true
       return res.json(url)
     } catch (error) {
       const err = createError(404, 'url not found')
