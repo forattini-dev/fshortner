@@ -45,5 +45,18 @@ services:
       MINIO_ROOT_USER: fshortner
       MINIO_ROOT_PASSWORD: thisissecret
 
+  redis:
+    image: "redis:alpine"
+
+  mockbin:
+    image: ghcr.io/kong/insomnia-mockbin
+    ports:
+      - "8080:8080"
+    environment:
+      DEBUG: mockbin
+      MOCKBIN_PORT: 8080
+      MOCKBIN_REDIS: redis://redis:6379
+
+
 volumes:
   minio_data: {}

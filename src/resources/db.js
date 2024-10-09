@@ -15,6 +15,7 @@ export async function createDB(App) {
       ip: 'string',
       clicks: 'number|optional|min:0',
       views: 'number|optional|min:0',
+      webhook: 'string|optional',
     },
   })
 

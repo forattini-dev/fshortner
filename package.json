@@ -5,8 +5,8 @@
   "type": "module",
   "license": "MIT",
   "scripts": {
-    "start": "node index.js",
-    "dev": "nodemon index.js",
+    "start": "node --no-warnings index.js",
+    "dev": "nodemon --no-warnings index.js",
     "build": "rollup -c"
   },
   "dependencies": {
@@ -22,6 +22,7 @@
     "helmet": "^8.0.0",
     "hpp": "^0.2.3",
     "http-errors": "^2.0.0",
+    "ky": "^1.7.2",
     "morgan": "^1.10.0",
     "nanoid": "^5.0.7",
     "nocache": "^4.0.0",

@@ -5,7 +5,7 @@ import createError from 'http-errors';
 import { body, validationResult } from 'express-validator'
 
 export function addRoutes(App) {
-  const { server, db } = App.resources
+  const { server, db, events } = App.resources
 
   const {
     FS_ID_SIZE = '16',
@@ -16,6 +16,7 @@ export function addRoutes(App) {
   // create
   server.post('/v1/urls', [
     body('link').isURL(),
+    body('webhook').optional(),
   ], async (req, res, next) => {
     const errors = validationResult(req);
 
@@ -25,7 +26,7 @@ export function addRoutes(App) {
       return next(err);
     }
 
-    const id = nanoid(parseInt(App.env.FS_ID_SIZE))
+    const id = nanoid(parseInt(FS_ID_SIZE))
 
     let shareable = new URL([
       req.protocol,
@@ -45,6 +46,7 @@ export function addRoutes(App) {
     })
 
     delete url.ip
+    events.emit('url:created', url)
     return res.json(url);
   })
 
@@ -78,6 +80,7 @@ export function addRoutes(App) {
     const click = {
       ip: req.ip,
       urlId: req.params.id,
+      url,
     }
 
     for (const [key, value] of Object.entries(req.query)) {
@@ -92,6 +95,8 @@ export function addRoutes(App) {
         db.resource('clicks').insert(click),
         db.resource('clicks-report').insert(click),
       ])
+
+      events.emit('click:created', click)
     } catch (error) {
       const err = createError(500, 'could not save click')
       err.details = error
@@ -123,9 +128,12 @@ export function addRoutes(App) {
 
       if (exists) {
         await db.resource('users').update(id, rest)
+        events.emit('user:updated', user)
       } else {
         await db.resource('users').insert(user)
+        events.emit('user:created', user)
       }
+
     } catch (error) {
       const err = createError(500, 'user not saved')
       err.details = error
@@ -140,6 +148,11 @@ export function addRoutes(App) {
         db.resource('views').insert(view),
         db.resource('views-report').insert(view),
       ])
+      
+      view.user = user
+      view.url = await db.resource('urls').get(view.urlId)
+
+      events.emit('view:created', view)
     } catch (error) {
       const err = createError(500, 'live data not saved')
       err.details = error

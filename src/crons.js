@@ -8,7 +8,6 @@ export function startCrons(App) {
     FS_CRON_VIEWS_COUNTER = '*/30 * * * * *',
   } = App.env
 
-
   // calculate clicks
   cron.schedule(FS_CRON_CLICKS_COUNTER, async () => {
     const items = await db.resource('clicks-report').page(1)
@@ -24,10 +23,11 @@ export function startCrons(App) {
 
     for (const [urlId, clicks] of Object.entries(click)) {
       try {
-        const url = await db.resource('urls').get(urlId)
-        await db.resource('urls').update(urlId, { 
+        let url = await db.resource('urls').get(urlId)
+        url = await db.resource('urls').update(urlId, { 
           clicks: (url.clicks || 0) + clicks
         })
+
       } catch (error) {
         console.error('FShrt :: clicks - error:', error)
       }

@@ -1,14 +1,28 @@
+import ky from 'ky';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { EventEmitter } from 'events';
 
 import { addRoutes } from "./routes.js"
 import { startCrons } from "./crons.js"
+import { addEventsHandlers } from "./events.js"
 import { createDB, createServer } from "./resources/index.js"
+import { default as pkg } from '../package.json' assert { type: 'json' };
+
 
 export const App = {
-  resources: {},
   env: process.env,
   root: path.dirname(fileURLToPath(import.meta.url)),
+  
+  resources: {
+    events: new EventEmitter(),
+
+    httpClient: ky.create({
+      headers: {
+        'user-agent': `FShrt/${pkg.version}`,
+      }
+    })
+  },
 
   async create() {
     this.resources.db = await createDB(this)
@@ -17,6 +31,7 @@ export const App = {
 
   async start() {
     addRoutes(this)
+    addEventsHandlers(this)
 
     if ([true, 'true'].includes(this.env.FS_CRON_ENABLE || true)) startCrons(this)
 
