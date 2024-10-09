@@ -4,6 +4,7 @@ This is a simple lightweight URL shortning service using express and s3db.js.
 
 Fork-it and use it as you like.
 
+
 ## Usage
 
 ### Shorten a URL
@@ -44,6 +45,7 @@ Response:
 }
 ``` 
 
+
 ## Configuration
 
 // table: 
@@ -52,10 +54,13 @@ Response:
 | PORT | Port to run the service | 8000 |
 | FS_ID_SIZE | Size of the ID to generate | 16 |
 | FS_DOMAIN | Domain to use in the shareable link | inferred |
+| FS_REDIRECT_TIMEOUT | Timeout to redirect to the original URL | 1 |
 | FS_CONNECTION_STRING | Secret to connect to the s3db.js database | - |
 | FS_CRON_ENABLE | Enable the cron jobs | true |
 | FS_CRON_CLICKS_COUNTER | Cron expression to update the clicks counter | */30 * * * * * |
 | FS_CRON_VIEWS_COUNTER | Cron expression to update the views counter | */30 * * * * * |
+| FS_REDIRECT_TEMPLATE | Interface's template | corporate |
+
 
 ## Run & test it
 

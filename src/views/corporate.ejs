@@ -74,11 +74,7 @@
     <p>You will be redirected shortly. If the redirection doesn't happen automatically, please click the button below.</p>
     <p><a href="<%= link %>">Go to Destination</a></p>
   </div>
-  <script>
-    setTimeout(function () {
-      window.location.href = "<%= link %>";
-    }, <%= timeout %> * 1000);
-  </script>
+  <script src="/js/redirector.js"></script>
 </body>
 
 </html>

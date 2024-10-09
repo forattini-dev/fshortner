@@ -24,6 +24,7 @@
     "http-errors": "^2.0.0",
     "morgan": "^1.10.0",
     "nanoid": "^5.0.7",
+    "nocache": "^4.0.0",
     "node-cron": "^3.0.3",
     "s3db.js": "^3.2.0"
   },

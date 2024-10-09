@@ -7,6 +7,12 @@ import { body, validationResult } from 'express-validator'
 export function addRoutes(App) {
   const { server, db } = App.resources
 
+  const {
+    FS_ID_SIZE = '16',
+    FS_REDIRECT_TIMEOUT = '1',
+    FS_REDIRECT_TEMPLATE = 'corporate',
+  } = App.env
+
   // create
   server.post('/v1/urls', [
     body('link').isURL(),
@@ -19,9 +25,7 @@ export function addRoutes(App) {
       return next(err);
     }
 
-    const id = App.env.FS_ID_SIZE
-      ? nanoid(parseInt(App.env.FS_ID_SIZE))
-      : nanoid(16)
+    const id = nanoid(parseInt(App.env.FS_ID_SIZE))
 
     let shareable = new URL([
       req.protocol,
@@ -62,7 +66,7 @@ export function addRoutes(App) {
 
   server.get('/:id', async (req, res, next) => {
     let url
-    
+
     try {
       url = await db.resource('urls').get(req.params.id)
     } catch (error) {
@@ -93,13 +97,13 @@ export function addRoutes(App) {
       err.details = error
       console.log(err)
     }
-    
+
     const options = {
       link: url.link,
-      timeout: 10, // needs to be in seconds
+      timeout: parseFloat(FS_REDIRECT_TIMEOUT), // needs to be in seconds
     }
 
-    return res.render('redirector', options, (err, html) => {
+    return res.render(FS_REDIRECT_TEMPLATE, options, (err, html) => {
       if (err) {
         const error = createError(500, 'error rendering template')
         error.details = err
@@ -112,7 +116,7 @@ export function addRoutes(App) {
 
   server.post('/v1/live', async (req, res, next) => {
     const { user, view } = req.body
-    
+
     try {
       const { id, ...rest } = user
       const exists = await db.resource('users').exists(id)
@@ -142,12 +146,22 @@ export function addRoutes(App) {
       console.log(error)
       return next(err);
     }
-    
+
     return res.sendStatus(204)
   })
 
+  server.use(Express.static(path.join(App.root, '..', 'public'), {
+    etag: false,
+    maxAge: 0,
+    cacheControl: false,
 
-  server.use(Express.static(path.join(App.root, '..', 'public')));
+    setHeaders: (res, path) => {
+      res.setHeader('Expires', '0');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Surrogate-Control', 'no-store');
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    }
+  }));
 
   server.use((req, res, next) => {
     next(createError(404, 'route not found'));
