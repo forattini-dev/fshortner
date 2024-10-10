@@ -27,6 +27,7 @@
     "nanoid": "^5.0.7",
     "nocache": "^4.0.0",
     "node-cron": "^3.0.3",
+    "qrcode": "^1.5.4",
     "s3db.js": "^3.2.0"
   },
   "devDependencies": {

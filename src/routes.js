@@ -1,15 +1,22 @@
 import path from 'path'
 import Express from 'express';
 import { nanoid } from 'nanoid';
+import QRCode from 'qrcode';
 import createError from 'http-errors';
 import { body, validationResult } from 'express-validator'
+
+export function createErrorWithDetails (status, message, details = {}) {
+  const error = createError(status, message);
+  error.details = details ? String(details) : '';
+  return error;
+}
 
 export function addRoutes(App) {
   const { server, db, events } = App.resources
 
   const {
     FS_ID_SIZE = '16',
-    FS_REDIRECT_TIMEOUT = '1',
+    FS_REDIRECT_TIMEOUT = '0.5',
     FS_REDIRECT_TEMPLATE = 'corporate',
   } = App.env
 
@@ -21,9 +28,7 @@ export function addRoutes(App) {
     const errors = validationResult(req);
 
     if (!errors.isEmpty()) {
-      const err = createError(400, 'invalid data')
-      err.details = errors.array()
-      return next(err);
+      return next(createErrorWithDetails(400, 'invalid data', errors.array()));
     }
 
     const id = nanoid(parseInt(FS_ID_SIZE))
@@ -38,16 +43,21 @@ export function addRoutes(App) {
     shareable.pathname = `/${id}`
     shareable = shareable.toString()
 
-    const url = await db.resource('urls').insert({
+    const data = {
       ...req.body,
       id,
       shareable,
       ip: req.ip,
-    })
-
-    delete url.ip
-    events.emit('url:created', url)
-    return res.json(url);
+    }
+    
+    try {
+      const url = await db.resource('urls').insert(data)
+      delete url.ip
+      events.emit('url:created', url)
+      return res.json(url);
+    } catch (error) {
+      return next(createErrorWithDetails(500, 'could not create url', error));
+    }
   })
 
   // show
@@ -61,21 +71,37 @@ export function addRoutes(App) {
       if (url.webhook) url.webhook = true
       return res.json(url)
     } catch (error) {
-      const err = createError(404, 'url not found')
-      err.details = error
-      return next(err);
+      return next(createErrorWithDetails(404, 'url not found', error));
     }
   })
 
+  // show qrcode
+  server.get('/v1/urls/:id/qrcode', async (req, res, next) => {
+    let url 
+
+    try {
+      url = await db.resource('urls').get(req.params.id)
+    } catch (error) {
+      return next(createErrorWithDetails(404, 'url not found', error));
+    }
+
+    try {
+      res.setHeader('Content-Type', 'image/png');
+      const qrimg = await QRCode.toBuffer(url.link, { type: 'png' });
+      res.send(qrimg);
+    } catch (error) {
+      return next(createErrorWithDetails(500, 'could not create qr code', error));
+    }
+  })
+
+  // redirect
   server.get('/:id', async (req, res, next) => {
     let url
 
     try {
       url = await db.resource('urls').get(req.params.id)
     } catch (error) {
-      const err = createError(404, 'url not found')
-      err.details = error
-      return next(err);
+      return next(createErrorWithDetails(404, 'url not found', error));
     }
 
     const click = {
@@ -109,17 +135,16 @@ export function addRoutes(App) {
       timeout: parseFloat(FS_REDIRECT_TIMEOUT), // needs to be in seconds
     }
 
-    return res.render(FS_REDIRECT_TEMPLATE, options, (err, html) => {
-      if (err) {
-        const error = createError(500, 'error rendering template')
-        error.details = err
-        return next(error);
+    return res.render(FS_REDIRECT_TEMPLATE, options, (error, html) => {
+      if (error) {
+        return next(createErrorWithDetails(500, 'error rendering template', error));
       }
 
       return res.send(html)
     })
   })
 
+  // enrich
   server.post('/v1/live', async (req, res, next) => {
     const { user, view } = req.body
 
@@ -136,9 +161,7 @@ export function addRoutes(App) {
       }
 
     } catch (error) {
-      const err = createError(500, 'user not saved')
-      err.details = error
-      return next(err);
+      return next(createErrorWithDetails(500, 'user not saved', error));
     }
 
     view.ip = req.ip
@@ -155,10 +178,7 @@ export function addRoutes(App) {
 
       events.emit('view:created', view)
     } catch (error) {
-      const err = createError(500, 'live data not saved')
-      err.details = error
-      console.log(error)
-      return next(err);
+      return next(createErrorWithDetails(500, 'live data not saved', error));
     }
 
     return res.sendStatus(204)
