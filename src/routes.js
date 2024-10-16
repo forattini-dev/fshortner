@@ -32,7 +32,7 @@ export function addRoutes(App) {
   const {
     FS_DOMAIN,
     FS_ID_SIZE = 16,
-    FS_REDIRECT_TIMEOUT = '10.6', // needs to be in seconds
+    FS_REDIRECT_TIMEOUT = '0.6', // needs to be in seconds
     FS_REDIRECT_TEMPLATE = 'corporate',
   } = App.env
 
