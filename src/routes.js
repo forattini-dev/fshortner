@@ -1,66 +1,89 @@
 import path from 'path'
-import Express from 'express';
-import { nanoid } from 'nanoid';
-import QRCode from 'qrcode';
-import createError from 'http-errors';
+import cookie from "cookie"
+import QRCode from 'qrcode'
+import Express from 'express'
+import { nanoid } from 'nanoid'
+import createError from 'http-errors'
 import { body, validationResult } from 'express-validator'
 
-export function createErrorWithDetails (status, message, details = {}) {
+import { getOS, getBrowser } from './utils/user-agent.js'
+import { sessionIdMiddleware } from './middlewares/session-id.js'
+
+function createErrorWithDetails(status, message, details = {}) {
   const error = createError(status, message);
-  error.details = details ? String(details) : '';
+  error.details = details
   return error;
 }
 
+function getIPv4(ip) {
+  if (ip.includes('::ffff:')) {
+    return ip.split('::ffff:')[1];
+  }
+  return ip;
+}
+
 export function addRoutes(App) {
-  const { server, db, events } = App.resources
+  const {
+    db,
+    events,
+    server,
+  } = App.resources
 
   const {
-    FS_ID_SIZE = '16',
-    FS_REDIRECT_TIMEOUT = '0.5',
+    FS_DOMAIN,
+    FS_ID_SIZE = 16,
+    FS_REDIRECT_TIMEOUT = '10.6', // needs to be in seconds
     FS_REDIRECT_TEMPLATE = 'corporate',
   } = App.env
 
-  // create
+  // url: create
   server.post('/v1/urls', [
     body('link').isURL(),
     body('webhook').optional(),
+    body('getFingerprints').isBoolean().default(true).optional(),
   ], async (req, res, next) => {
-    const errors = validationResult(req);
-
-    if (!errors.isEmpty()) {
-      return next(createErrorWithDetails(400, 'invalid data', errors.array()));
+    const validationErrors = validationResult(req);
+    if (!validationErrors.isEmpty()) {
+      return next(createErrorWithDetails(400, 'invalid request data from request', validationErrors.array()));
     }
-
-    const id = nanoid(parseInt(FS_ID_SIZE))
-
-    let shareable = new URL([
-      req.protocol,
-      '://',
-      App.env.FS_DOMAIN ?? req.get('host'),
-      req.originalUrl
-    ].join(''))
-
-    shareable.pathname = `/${id}`
-    shareable = shareable.toString()
 
     const data = {
       ...req.body,
-      id,
-      shareable,
-      ip: req.ip,
+      ip: getIPv4(req.ip),
     }
-    
+
+    const {
+      isValid,
+      errors: resourceValidationErrors,
+    } = await db.resource('urls').validate(data)
+
+    if (!isValid) {
+      return next(createErrorWithDetails(400, 'invalid request data from validator', resourceValidationErrors));
+    }
+
+    data.id = nanoid(parseInt(FS_ID_SIZE, 10))
+
+    let shareableLink = new URL([
+      req.protocol,
+      '://',
+      FS_DOMAIN ?? req.get('host'),
+      req.originalUrl
+    ].join(''))
+
+    shareableLink.pathname = `/${data.id}`
+    data.shareableLink = shareableLink.toString()
+
     try {
       const url = await db.resource('urls').insert(data)
-      delete url.ip
       events.emit('url:created', url)
+      delete url.ip
       return res.json(url);
     } catch (error) {
       return next(createErrorWithDetails(500, 'could not create url', error));
     }
   })
 
-  // show
+  // url: show
   server.get('/v1/urls/:id', async (req, res, next) => {
     try {
       const url = await db.resource('urls').get(req.params.id)
@@ -69,15 +92,16 @@ export function addRoutes(App) {
       delete url._length
       delete url._createdAt
       if (url.webhook) url.webhook = true
+
       return res.json(url)
     } catch (error) {
       return next(createErrorWithDetails(404, 'url not found', error));
     }
   })
 
-  // show qrcode
+  // url : show (qrcode)
   server.get('/v1/urls/:id/qrcode', async (req, res, next) => {
-    let url 
+    let url
 
     try {
       url = await db.resource('urls').get(req.params.id)
@@ -95,7 +119,7 @@ export function addRoutes(App) {
   })
 
   // redirect
-  server.get('/:id', async (req, res, next) => {
+  server.get('/:id', sessionIdMiddleware(App), async (req, res, next) => {
     let url
 
     try {
@@ -105,9 +129,10 @@ export function addRoutes(App) {
     }
 
     const click = {
-      ip: req.ip,
-      urlId: req.params.id,
       url,
+      ip: getIPv4(req.ip),
+      urlId: url.id,
+      sessionId: req.session.id,
     }
 
     for (const [key, value] of Object.entries(req.query)) {
@@ -117,22 +142,13 @@ export function addRoutes(App) {
       }
     }
 
-    try {
-      await Promise.all([
-        db.resource('clicks').insert(click),
-        db.resource('clicks-report').insert(click),
-      ])
+    events.emit('url:redirected', { url, click })
 
-      events.emit('click:created', click)
-    } catch (error) {
-      const err = createError(500, 'could not save click')
-      err.details = error
-      console.log(err)
-    }
+    if (!url.getFingerprints) return res.redirect(url.link, 302);
 
     const options = {
       link: url.link,
-      timeout: parseFloat(FS_REDIRECT_TIMEOUT), // needs to be in seconds
+      timeout: parseFloat(FS_REDIRECT_TIMEOUT),
     }
 
     return res.render(FS_REDIRECT_TEMPLATE, options, (error, html) => {
@@ -145,26 +161,41 @@ export function addRoutes(App) {
   })
 
   // enrich
-  server.post('/v1/live', async (req, res, next) => {
-    const { user, view } = req.body
+  server.post('/v1/live', sessionIdMiddleware(App), async (req, res, next) => {
+    const { fingerprint, view } = req.body
+    fingerprint.lastIp = getIPv4(req.ip)
+    fingerprint.system = getOS(fingerprint.userAgent)
+    fingerprint.browser = getBrowser(fingerprint.userAgent)
+    fingerprint.lastSessionId = req.cookies.sessionId
 
     try {
-      const { id, ...rest } = user
-      const exists = await db.resource('users').exists(id)
+      const { id, ...rest } = fingerprint
+      const exists = await db.resource('fingerprints').exists(id)
 
       if (exists) {
-        await db.resource('users').update(id, rest)
-        events.emit('user:updated', user)
+        await db.resource('fingerprints').update(id, rest)
+        events.emit('fingerprint:updated', fingerprint)
       } else {
-        await db.resource('users').insert(user)
-        events.emit('user:created', user)
+        await db.resource('fingerprints').insert(fingerprint)
+        events.emit('fingerprint:created', fingerprint)
       }
-
     } catch (error) {
-      return next(createErrorWithDetails(500, 'user not saved', error));
+      return next(createErrorWithDetails(500, 'fingerprint not saved', error));
     }
 
-    view.ip = req.ip
+    let url
+    try {
+      url = await db.resource('urls').get(view.urlId)
+    } catch (error) {
+      return next(createErrorWithDetails(404, 'could not find url', error));
+    }
+
+    view.ip = getIPv4(req.ip)
+    view.url = url
+    view.fingerprint = fingerprint
+    view.fingerprintId = fingerprint.id
+    view.sessionId = req.cookies.sessionId
+
     if (view.utm && Object.keys(view.utm).length === 0) delete view.utm
 
     try {
@@ -172,13 +203,9 @@ export function addRoutes(App) {
         db.resource('views').insert(view),
         db.resource('views-report').insert(view),
       ])
-      
-      view.user = user
-      view.url = await db.resource('urls').get(view.urlId)
-
       events.emit('view:created', view)
     } catch (error) {
-      return next(createErrorWithDetails(500, 'live data not saved', error));
+      return next(createErrorWithDetails(500, 'view was not saved', error));
     }
 
     return res.sendStatus(204)
@@ -213,7 +240,7 @@ export function addRoutes(App) {
       errorResponse.details = err.details;
     }
 
+    App.log.error(err.status, err)
     res.json(errorResponse);
   })
 }
-

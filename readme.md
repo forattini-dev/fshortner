@@ -5,51 +5,60 @@ This is a simple lightweight URL shortning service using express and s3db.js.
 Fork-it and use it as you like.
 
 
-## Usage
+## Start the service
+
+```bash
+docker run --rm -itd \
+  -p 8000:8000 \
+  -e PORT=8000 \
+  -e FS_CONNECTION_STRING="your-secret" \
+  --name fshortner \
+  ghcr.io/forattini-dev/fshortner:latest
+```
+
+
+## API usage
 
 ### Shorten a URL
 
-Request: 
-
 `POST /v1/urls`
 
+
 ```json
+// request: 
 {
   "link": "https://my-super-loooooooooooong-url.com?p=with+parameters"
 }
-```
 
-Response:
-
-```json
+// response:
 {
   "id": "AdCcOPzRR4UXCMs4",
   "link": "https://my-super-loooooooooooong-url.com?p=with+parameters",
-  "shareable": "http://localhost:8000/AdCcOPzRR4UXCMs4"
+  "shareableLink": "http://localhost:8000/AdCcOPzRR4UXCMs4"
 }
 ```
 
+Body parameters:
+| parameter | description | required | type | default |
+| :--- | --- | :---: | :---: | :---: |
+| link | URL to shorten. | true | url string | null |
+| webhook | URL to send updates. | false | url string | null |
+| getFingerprints | Enable to get the fingerprints. | true | boolean | true |
 
-### Shorten a URL and get instant updates
-
-Request: 
-
-`POST /v1/urls`
+#### Ex: shorten a URL and get instant updates
 
 ```json
+// request 
 {
   "link": "https://my-super-loooooooooooong-url.com?p=with+parameters",
   "webhook": "https://my-webhook.io/?id=my-token"
 }
-```
 
-Response:
-
-```json
+// response:
 {
   "id": "AdCcOPzRR4UXCMs4",
   "link": "https://my-super-loooooooooooong-url.com?p=with+parameters",
-  "shareable": "http://localhost:8000/AdCcOPzRR4UXCMs4",
+  "shareableLink": "http://localhost:8000/AdCcOPzRR4UXCMs4",
   "webhook": "https://my-webhook.io/?id=my-token"
 }
 ```
@@ -58,9 +67,8 @@ Response:
 
 `GET /v1/urls/:id`
 
-Response:
-
 ```json
+// response:
 {
   "id": "AdCcOPzRR4UXCMs4",
   "clicks": 121,
@@ -78,29 +86,25 @@ Response:
 Response is a image/png.
 
 
-## Configuration
+## Service global configuration
 
-// table: 
 | variable | description | default |
 | :--- | --- | :---: |
 | PORT | Port to run the service. | 8000 |
 | FS_ID_SIZE | Size of the ID to generate. | 16 |
 | FS_DOMAIN | Domain to use in the shareable link. | inferred |
+| FS_BEHIND_PROXY | Enable if the service is behind a proxy. | false |
 | FS_REDIRECT_TEMPLATE | Interface's template. See `./src/views` dir for more. | corporate |
 | FS_REDIRECT_TIMEOUT | Timeout to redirect to the original URL. | 1 |
-| FS_CONNECTION_STRING | Secret to connect to the s3db.js database. | - |
+| FS_CONNECTION_STRING | Secret to connect to the s3db.js database. | null |
 | FS_CRON_ENABLE | Enable the cron jobs. | true |
 | FS_CRON_CLICKS_COUNTER | Cron expression to update the clicks counter. | */30 * * * * * |
 | FS_CRON_VIEWS_COUNTER | Cron expression to update the views counter. | */30 * * * * * |
 
 
-## Run & test it
+## Contributing
 
-```bash
-docker run --rm -itd \
-  -p 8000:8000 \
-  -e PORT=8000 \
-  -e FS_CONNECTION_STRING="your-secret" \
-  --name fshortner \
-  ghcr.io/forattini-dev/fshortner:latest
-```
+1. Fork it! :)
+1. Run it with `docker-compose up`
+1. At your minio container, create credentials and use the example at `./src/concerns/minio-policy.json` to create a policy.
+1. Make your requests to `http://localhost:8000`

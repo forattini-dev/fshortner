@@ -6,15 +6,25 @@ import morgan from 'morgan'
 import Express from 'express';
 import nocache from 'nocache';
 import compression from 'compression'
+import cookieParser from 'cookie-parser'
 import rateLimit from 'express-rate-limit'
 import statusMonitor from 'express-status-monitor'
+import { nanoid } from 'nanoid'
 
-export async function createServer (App) {
+export async function createServer(App) {
+  const {
+    FS_BEHIND_PROXY = 'false',
+  } = App.env
+
   const server = Express();
 
   server.disable('etag');
   server.disable('x-powered-by');
-  
+
+  if ([true, 'true'].includes(FS_BEHIND_PROXY)) {
+    server.set('trust proxy', true);
+  }
+
   server.set('view engine', 'ejs');
   server.set('views', path.join(App.root, 'views'));
 
@@ -27,6 +37,7 @@ export async function createServer (App) {
   server.use(nocache());
   server.use(compression());
   server.use(morgan('dev'));
+  server.use(cookieParser());
 
   server.use(rateLimit({
     max: 100,

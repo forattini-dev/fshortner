@@ -1,65 +1,79 @@
 import cron from 'node-cron'
+import { PromisePool } from '@supercharge/promise-pool'
 
 export function startCrons(App) {
   const { db } = App.resources
 
   const {
-    FS_CRON_CLICKS_COUNTER = '*/30 * * * * *',
     FS_CRON_VIEWS_COUNTER = '*/30 * * * * *',
+    FS_CRON_CLICKS_COUNTER = '*/30 * * * * *',
   } = App.env
 
   // calculate clicks
   cron.schedule(FS_CRON_CLICKS_COUNTER, async () => {
-    const items = await db.resource('clicks-report').page(1)
+    const items = await db.resource('clicks-report').page({ size: 1000 })
     
     if (!items.length) return
-    console.log('FShrt :: clicks - calculating...')
+    App.log.info('crons :: calculating clicks...')
 
-    const click = items.reduce((acc, item) => {
-      if (!acc[item.urlId]) acc[item.urlId] = 0
-      acc[item.urlId]++
+    const clicksMap = items.reduce((acc, item) => {
+      if (!acc.urls[item.urlId]) acc.urls[item.urlId] = 0
+      if (!acc.sessions[item.sessionId]) acc.sessions[item.sessionId] = 0
+      
+      acc.urls[item.urlId]++
+      acc.sessions[item.sessionId]++
       return acc
-    }, {})
+    }, { urls: {}, sessions: {}})
 
-    for (const [urlId, clicks] of Object.entries(click)) {
-      try {
-        let url = await db.resource('urls').get(urlId)
-        url = await db.resource('urls').update(urlId, { 
-          clicks: (url.clicks || 0) + clicks
-        })
+    const requests = []
+      .concat(Object.entries(clicksMap.urls).map(([urlId, clicks]) => ({ resource: 'urls', id: urlId, clicks })))
+      .concat(Object.entries(clicksMap.sessions).map(([sessionId, clicks]) => ({ resource: 'sessions', id: sessionId, clicks })))
 
-      } catch (error) {
-        console.error('FShrt :: clicks - error:', error)
-      }
-    }
+    const { results, errors } = await PromisePool
+      .withConcurrency(25)
+      .for(requests)
+      .process(async ({ resource, id, clicks }, index, pool) => {
+        const live = await db.resource(resource).get(id)
+        await db.resource(resource).update(id, { clicks: (live.clicks || 0) + clicks })
+        return live
+      })
 
+    App.log.warn('crons :: clicks updates:', results.length, '(errors:', (errors.length/results.length).toFixed(2) * 100 + '%)')
     await db.resource('clicks-report').deleteMany(items.map(item => item.id))
+    App.log.info('crons :: clicks-report data removed.')
   });
 
   // calculate views
   cron.schedule(FS_CRON_VIEWS_COUNTER, async () => {
-    const items = await db.resource('views-report').page(1)
+    const items = await db.resource('views-report').page({ size: 1000 })
     
     if (!items.length) return
-    console.log('FShrt :: views - calculating...')
+    App.log.info('crons :: calculating views...')
 
-    const click = items.reduce((acc, item) => {
-      if (!acc[item.urlId]) acc[item.urlId] = 0
-      acc[item.urlId]++
+    const viewsMap = items.reduce((acc, item) => {
+      if (!acc.urls[item.urlId]) acc.urls[item.urlId] = 0
+      if (!acc.sessions[item.sessionId]) acc.sessions[item.sessionId] = 0
+      
+      acc.urls[item.urlId]++
+      acc.sessions[item.sessionId]++
       return acc
-    }, {})
+    }, { urls: {}, sessions: {}})
 
-    for (const [urlId, views] of Object.entries(click)) {
-      try {
-        const url = await db.resource('urls').get(urlId)
-        await db.resource('urls').update(urlId, { 
-          views: (url.views || 0) + views
-        })
-      } catch (error) {
-        console.error('FShrt :: views - error:', error)
-      }
-    }
+    const requests = []
+      .concat(Object.entries(viewsMap.urls).map(([urlId, views]) => ({ resource: 'urls', id: urlId, views })))
+      .concat(Object.entries(viewsMap.sessions).map(([sessionId, views]) => ({ resource: 'sessions', id: sessionId, views })))
 
+    const { results, errors } = await PromisePool
+      .withConcurrency(25)
+      .for(requests)
+      .process(async ({ resource, id, views }, index, pool) => {
+        const live = await db.resource(resource).get(id)
+        await db.resource(resource).update(id, { views: (live.views || 0) + views })
+        return live
+      })
+
+    App.log.warn('crons :: views updates:', results.length, '(errors:', (errors.length/results.length).toFixed(2) * 100 + '%)')
     await db.resource('views-report').deleteMany(items.map(item => item.id))
+    App.log.info('crons :: views-report data removed.')
   });
 }

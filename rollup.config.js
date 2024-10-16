@@ -3,7 +3,7 @@ import commonjs from '@rollup/plugin-commonjs';
 import { terser } from 'rollup-plugin-terser';
 
 export default {
-  input: './src/redirector.js',
+  input: './src/scripts/redirector.js',
   output: {
     file: 'public/js/redirector.js',
     format: 'iife',

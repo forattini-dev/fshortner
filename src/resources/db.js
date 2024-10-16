@@ -1,8 +1,11 @@
-import { S3db } from 's3db.js'
+import { S3db, CostsPlugin } from 's3db.js'
 
 export async function createDB(App) {
+  const { FS_CONNECTION_STRING } = App.env
+
   const db = new S3db({
-    connectionString: App.env.FS_CONNECTION_STRING,
+    connectionString: FS_CONNECTION_STRING,
+    plugins: [CostsPlugin],
   })
 
   await db.connect()
@@ -10,32 +13,20 @@ export async function createDB(App) {
   await db.createResource({
     name: 'urls',
     attributes: {
-      link: 'string',
-      shareable: 'string',
       ip: 'string',
+      link: 'string',
+      shareableLink: 'string|optional',
+      webhook: 'string|optional',
       clicks: 'number|optional|min:0',
       views: 'number|optional|min:0',
-      webhook: 'string|optional',
-    },
-  })
-
-  await db.createResource({
-    name: 'users',
-    attributes: {
-      userAgent: 'string',
-      cpu: 'number',
-      memory: 'number',
-      screenWidth: 'number',
-      screenHeight: 'number',
-      resolution: 'string',
-      colorDepth: 'number',
-      timezone: 'string',
+      getFingerprints: 'boolean|optional|default:true',
     },
   })
 
   const dynamicEventsAttrs = {
     urlId: 'string',
     ip: 'string',
+    sessionId: 'string',
     utm: {
       $$type: 'object|optional',
       source: 'string|optional',
@@ -58,12 +49,44 @@ export async function createDB(App) {
 
   await db.createResource({
     name: 'views',
-    attributes: dynamicEventsAttrs,
+    attributes: {
+      ...dynamicEventsAttrs,
+      fingerprintId: 'string',
+    },
   })
 
   await db.createResource({
     name: 'views-report',
-    attributes: dynamicEventsAttrs,
+    attributes: {
+      ...dynamicEventsAttrs,
+      fingerprintId: 'string',
+    },
+  })
+
+  await db.createResource({
+    name: 'fingerprints',
+    attributes: {
+      lastSessionId: 'string',
+      cpu: 'number',
+      memory: 'number',
+      lastIp: 'string',
+      timezone: 'string',
+      userAgent: 'string',
+      colorDepth: 'number',
+      resolution: 'string',
+      windowSize: 'string',
+      system: 'string|optional',
+      browser: 'string|optional',
+    },
+  })
+
+  await db.createResource({
+    name: 'sessions',
+    attributes: {
+      clicks: 'number|optional|min:0',
+      views: 'number|optional|min:0',
+      lastFingerprintId: 'string|optional',
+    },
   })
 
   return db
