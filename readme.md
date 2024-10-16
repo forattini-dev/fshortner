@@ -23,8 +23,7 @@ docker run --rm -itd \
 
 `POST /v1/urls`
 
-
-```json
+```js
 // request: 
 {
   "link": "https://my-super-loooooooooooong-url.com?p=with+parameters"
@@ -47,7 +46,7 @@ Body parameters:
 
 #### Ex: shorten a URL and get instant updates
 
-```json
+```js
 // request 
 {
   "link": "https://my-super-loooooooooooong-url.com?p=with+parameters",
@@ -67,7 +66,7 @@ Body parameters:
 
 `GET /v1/urls/:id`
 
-```json
+```js
 // response:
 {
   "id": "AdCcOPzRR4UXCMs4",

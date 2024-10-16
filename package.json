@@ -9,7 +9,7 @@
     "dev": "nodemon --no-warnings index.js",
     "build": "rollup -c",
     "docker:build": "docker build --rm --no-cache -t ghcr.io/forattini-dev/fshortner:latest .",
-    "docker:push": "docker push ghcr.io/forattini-dev/fshortner:latest ."
+    "docker:push": "docker push ghcr.io/forattini-dev/fshortner:latest"
   },
   "dependencies": {
     "@fingerprintjs/fingerprintjs": "^4.5.0",
