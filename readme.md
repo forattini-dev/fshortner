@@ -91,8 +91,9 @@ Response is a image/png.
 | :--- | --- | :---: |
 | PORT | Port to run the service. | 8000 |
 | FS_ID_SIZE | Size of the ID to generate. | 16 |
+| FS_SESSION_SECRET | Secret to sign the session. | secret |
 | FS_DOMAIN | Domain to use in the shareable link. | inferred |
-| FS_BEHIND_PROXY | Enable if the service is behind a proxy. | false |
+| FS_BEHIND_PROXY | Enable it if the service is behind a proxy. | false |
 | FS_REDIRECT_TEMPLATE | Interface's template. See `./src/views` dir for more. | corporate |
 | FS_REDIRECT_TIMEOUT | Timeout to redirect to the original URL. | 1 |
 | FS_CONNECTION_STRING | Secret to connect to the s3db.js database. | null |
