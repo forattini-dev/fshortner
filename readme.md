@@ -72,7 +72,7 @@ Body parameters:
   "id": "AdCcOPzRR4UXCMs4",
   "clicks": 121,
   "link": "http://google.com",
-  "shareable": "http://localhost:8000/AdCcOPzRR4UXCMs4",
+  "shareableLink": "http://localhost:8000/AdCcOPzRR4UXCMs4",
   "webhook": true,
   "createdAt": "2024-10-07T02:25:35.000Z"
 }
