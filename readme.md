@@ -71,7 +71,7 @@ Body parameters:
 {
   "id": "AdCcOPzRR4UXCMs4",
   "clicks": 121,
-  "link": "http://google.com",
+  "link": "https://my-super-loooooooooooong-url.com?p=with+parameters",
   "shareableLink": "http://localhost:8000/AdCcOPzRR4UXCMs4",
   "webhook": true,
   "createdAt": "2024-10-07T02:25:35.000Z"
@@ -97,6 +97,7 @@ Response is a image/png.
 | FS_REDIRECT_TEMPLATE | Interface's template. See `./src/views` dir for more. | `corporate` |
 | FS_REDIRECT_TIMEOUT | Timeout to redirect to the original URL. | `0.6` |
 | FS_CONNECTION_STRING | Secret to connect to the s3db.js database. | `null` |
+| FS_COSTS_ENABLE | Enable the costs plugin. | `true` |
 | FS_CRON_ENABLE | Enable the cron jobs. | `true` |
 | FS_CRON_CLICKS_COUNTER | Cron expression to update the clicks counter. | `*/30 * * * * *` |
 | FS_CRON_VIEWS_COUNTER | Cron expression to update the views counter. | `*/30 * * * * *` |

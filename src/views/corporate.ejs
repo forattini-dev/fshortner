@@ -2,8 +2,22 @@
 <html>
 
 <head>
-  <title>Redirecting...</title>
   <meta http-equiv="refresh" content="<%= timeout %>; url=<%= link %>">
+
+  <% if (openGraph) { %>
+    <title>
+      <%= openGraph.title %>
+    </title>
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="<%= openGraph.title || '' %>">
+    <meta property="og:site_name" content="<%= openGraph.title || '' %>">
+    <meta property="og:description" content="<%= openGraph.description || '' %>">
+    <meta property="og:image" content="<%= openGraph.img || '' %>">
+    <meta property="og:url" content="<%= openGraph.link || '' %>">
+    <% } else { %>
+      <title>Redirecting...</title>
+    <% } %>
+
   <style>
     body {
       margin: 0;
@@ -71,9 +85,11 @@
   <div class="container">
     <h1>Redirecting You</h1>
     <div class="spinner"></div>
-    <p>You will be redirected shortly. If the redirection doesn't happen automatically, please click the button below.</p>
+    <p>You will be redirected shortly. If the redirection doesn't happen automatically, please click the button below.
+    </p>
     <p><a href="<%= link %>">Go to Destination</a></p>
   </div>
+
   <script src="/js/redirector.js"></script>
 </body>
 

@@ -19,10 +19,8 @@ function rightNow() {
 function toStringer(arrOfStuff = []) {
   return [].concat(arrOfStuff)
     .filter(msg => msg)
-    .map(msg => msg.toString
-      ? msg.toString()
-      : JSON.stringify(msg, null, 2)
-    ).join(' ')
+    .map(msg => JSON.stringify(msg, null, 2))
+    .join(' ')
 }
 
 export function ltrace(...msgs) {

@@ -1,11 +1,17 @@
 import { S3db, CostsPlugin } from 's3db.js'
 
 export async function createDB(App) {
-  const { FS_CONNECTION_STRING } = App.env
+  const { 
+    FS_CONNECTION_STRING,
+    FS_COSTS_ENABLE = 'true',
+  } = App.env
+
+  let plugins = []
+  if ([true, 'true'].includes(FS_COSTS_ENABLE)) plugins.push(CostsPlugin)
 
   const db = new S3db({
+    plugins,
     connectionString: FS_CONNECTION_STRING,
-    plugins: [CostsPlugin],
   })
 
   await db.connect()
@@ -20,6 +26,12 @@ export async function createDB(App) {
       clicks: 'number|optional|min:0',
       views: 'number|optional|min:0',
       getFingerprints: 'boolean|optional|default:true',
+      openGraph: {
+        $$type: 'object|optional',
+        title: 'string|optional',
+        description: 'string|optional',
+        image: 'string|optional',
+      },
     },
   })
 

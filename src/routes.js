@@ -149,10 +149,12 @@ export function addRoutes(App) {
     const options = {
       link: url.link,
       timeout: parseFloat(FS_REDIRECT_TIMEOUT),
+      openGraph: url.openGraph,
     }
 
     return res.render(FS_REDIRECT_TEMPLATE, options, (error, html) => {
       if (error) {
+        App.log.error('error rendering template', error)
         return next(createErrorWithDetails(500, 'error rendering template', error));
       }
 
