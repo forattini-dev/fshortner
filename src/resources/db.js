@@ -3,11 +3,11 @@ import { S3db, CostsPlugin } from 's3db.js'
 export async function createDB(App) {
   const { 
     FS_CONNECTION_STRING,
-    FS_COSTS_ENABLE = 'true',
+    FS_COSTS_ENABLED = 'true',
   } = App.env
 
   let plugins = []
-  if ([true, 'true'].includes(FS_COSTS_ENABLE)) plugins.push(CostsPlugin)
+  if ([true, 'true'].includes(FS_COSTS_ENABLED)) plugins.push(CostsPlugin)
 
   const db = new S3db({
     plugins,

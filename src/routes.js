@@ -1,11 +1,11 @@
 import path from 'path'
-import cookie from "cookie"
 import QRCode from 'qrcode'
 import Express from 'express'
 import { nanoid } from 'nanoid'
 import createError from 'http-errors'
 import { body, validationResult } from 'express-validator'
 
+import { authMiddleware } from './middlewares/auth.js';
 import { getOS, getBrowser } from './utils/user-agent.js'
 import { sessionIdMiddleware } from './middlewares/session-id.js'
 
@@ -32,16 +32,23 @@ export function addRoutes(App) {
   const {
     FS_DOMAIN,
     FS_ID_SIZE = 16,
+    FS_AUTH_ENABLED = 'false',
     FS_REDIRECT_TIMEOUT = '0.6', // needs to be in seconds
     FS_REDIRECT_TEMPLATE = 'corporate',
   } = App.env
+
+  let middlewares = []
+  if ([true, 'true'].includes(FS_AUTH_ENABLED)) middlewares.push(authMiddleware(App))
 
   // url: create
   server.post('/v1/urls', [
     body('link').isURL(),
     body('webhook').optional(),
     body('getFingerprints').isBoolean().default(true).optional(),
-  ], async (req, res, next) => {
+    body('openGraph.title').isString().optional(),
+    body('openGraph.description').isString().optional(),
+    body('openGraph.image').isURL().optional(),
+  ], ...middlewares, async (req, res, next) => {
     const validationErrors = validationResult(req);
     if (!validationErrors.isEmpty()) {
       return next(createErrorWithDetails(400, 'invalid request data from request', validationErrors.array()));
@@ -84,7 +91,7 @@ export function addRoutes(App) {
   })
 
   // url: show
-  server.get('/v1/urls/:id', async (req, res, next) => {
+  server.get('/v1/urls/:id', ...middlewares, async (req, res, next) => {
     try {
       const url = await db.resource('urls').get(req.params.id)
       url.createdAt = url._createdAt

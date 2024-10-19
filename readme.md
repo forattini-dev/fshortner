@@ -16,8 +16,68 @@ docker run --rm -itd \
   ghcr.io/forattini-dev/fshortner:latest
 ```
 
+## Service global configuration
 
-## API usage
+| variable | description | default |
+| :--- | --- | :---: |
+| PORT | Port to run the service. | `8000` |
+| FS_ID_SIZE | Size of the ID to generate. | `16` |
+| FS_SESSION_SECRET | Secret to sign the session. | `secret` |
+| FS_DOMAIN | Domain to use in the shareable link. | inferred |
+| FS_BEHIND_PROXY | Enable it if the service is behind a proxy. | `false` |
+| FS_REDIRECT_TEMPLATE | Interface's template. See `./src/views` dir for more. | `corporate` |
+| FS_REDIRECT_TIMEOUT | Timeout to redirect to the original URL. | `0.6` |
+| FS_CONNECTION_STRING | Secret to connect to the s3db.js database. | `null` |
+| FS_COSTS_ENABLED | Enable the costs plugin. | `true` |
+| FS_CRON_ENABLED | Enable the cron jobs. | `true` |
+| FS_CRON_CLICKS_COUNTER | Cron expression to update the clicks counter. | `*/30 * * * * *` |
+| FS_CRON_VIEWS_COUNTER | Cron expression to update the views counter. | `*/30 * * * * *` |
+| FS_AUTH_ENABLED | Enable the basic authentication middleware. | `false` |
+| FS_AUTH_USERNAME | Username to authenticate. | `fshortner` |
+| FS_AUTH_PASSWORD | Password to authenticate. | `secret` |
+
+
+## Authentication
+
+The service uses a basic authentication middleware to protect the endpoints.
+
+First, enable the `FS_AUTH_ENABLED` variable.
+
+To authenticate, use the `FS_AUTH_USERNAME` and `FS_AUTH_PASSWORD` variables.
+
+### Example with curl
+
+```bash
+curl -u fshortner:secret http://localhost:8000/v1/urls
+```
+
+## Example with axios
+
+```js
+import axios from 'axios'
+
+const response = await axios.get('https://example.com/endpoint', {
+  auth: {
+    username: 'fshortner',
+    password: 'secret'
+  }
+});
+```
+
+## Example of creating a client with ky
+
+```js
+import axios from 'ky'
+
+const client = await ky.create({
+  prefixUrl: 'https://example.com',
+  headers: {
+    Authorization: `Basic ${Buffer.from(`fshortner:secret`).toString('base64')}`
+  }
+});
+```
+
+## API specs
 
 ### Shorten a URL
 
@@ -84,23 +144,6 @@ Body parameters:
 
 Response is a image/png.
 
-
-## Service global configuration
-
-| variable | description | default |
-| :--- | --- | :---: |
-| PORT | Port to run the service. | `8000` |
-| FS_ID_SIZE | Size of the ID to generate. | `16` |
-| FS_SESSION_SECRET | Secret to sign the session. | `secret` |
-| FS_DOMAIN | Domain to use in the shareable link. | inferred |
-| FS_BEHIND_PROXY | Enable it if the service is behind a proxy. | `false` |
-| FS_REDIRECT_TEMPLATE | Interface's template. See `./src/views` dir for more. | `corporate` |
-| FS_REDIRECT_TIMEOUT | Timeout to redirect to the original URL. | `0.6` |
-| FS_CONNECTION_STRING | Secret to connect to the s3db.js database. | `null` |
-| FS_COSTS_ENABLE | Enable the costs plugin. | `true` |
-| FS_CRON_ENABLE | Enable the cron jobs. | `true` |
-| FS_CRON_CLICKS_COUNTER | Cron expression to update the clicks counter. | `*/30 * * * * *` |
-| FS_CRON_VIEWS_COUNTER | Cron expression to update the views counter. | `*/30 * * * * *` |
 
 
 ## Contributing

@@ -5,14 +5,14 @@ export function startCrons(App) {
   const { db } = App.resources
 
   const {
-    FS_COSTS_ENABLE = 'true',
+    FS_COSTS_ENABLED = 'true',
     FS_CRON_REPORT = '*/30 * * * * *',
     FS_CRON_VIEWS_COUNTER = '*/30 * * * * *',
     FS_CRON_CLICKS_COUNTER = '0 */10 * * * *',
   } = App.env
   
   // costs
-  if ([true, 'true'].includes(FS_COSTS_ENABLE)) {
+  if ([true, 'true'].includes(FS_COSTS_ENABLED)) {
     cron.schedule(FS_CRON_REPORT, async () => {
       const { total, requests } = App.resources.db.client.costs
       App.log.info(`Requests: ${String(requests.total).padStart(5)} | Costs: ${total.toFixed(4)} USD`)

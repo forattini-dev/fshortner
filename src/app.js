@@ -33,13 +33,13 @@ export const App = {
   async start() {
     const {
       PORT,
-      FS_CRON_ENABLE,
+      FS_CRON_ENABLED = 'true',
     } = this.env
     
     addRoutes(this)
     addEventsHandlers(this)
 
-    if ([true, 'true'].includes(FS_CRON_ENABLE || true)) {
+    if ([true, 'true'].includes(FS_CRON_ENABLED)) {
       this.log.info('crons :: enabled')
       startCrons(this)
       this.log.info('crons :: started')
