@@ -1,17 +1,28 @@
-FROM node:21
-
-LABEL org.opencontainers.image.source=https://github.com/forattini-dev/fshortner
-LABEL org.opencontainers.image.description="A lightweight URL shortner"
-LABEL org.opencontainers.image.licenses=MIT
+FROM node:21-bullseye-slim AS build
 
 WORKDIR /app
 
-COPY package.json /app
-COPY yarn.lock /app
+RUN apt-get update && \
+    apt-get install -y python3 make g++ && \
+    ln -s /usr/bin/python3 /usr/bin/python
 
-RUN yarn install
+COPY package.json yarn.lock ./
 
-COPY . /app
+RUN yarn install --frozen-lockfile
+
+COPY . .
+
+FROM node:21-bullseye-slim
+
+LABEL org.opencontainers.image.source="https://github.com/forattini-dev/fshortner"
+LABEL org.opencontainers.image.description="A lightweight URL shortener"
+LABEL org.opencontainers.image.licenses="MIT"
+
+WORKDIR /app
+
+COPY --from=build /app /app
+
+EXPOSE 8000
 
 ENTRYPOINT ["yarn"]
 CMD ["start"]
