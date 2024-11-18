@@ -10,6 +10,8 @@ COPY package.json yarn.lock ./
 
 RUN yarn install --frozen-lockfile
 
+RUN yarn run build
+
 COPY . .
 
 FROM node:21-bullseye-slim
