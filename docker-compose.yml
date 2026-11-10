@@ -32,7 +32,7 @@ services:
   # dependencies
 
   minio:
-    image: bitnami/minio:latest
+    image: soldevelo/minio:latest
     volumes:
       - minio_data:/bitnami/minio/data 
     ports:
